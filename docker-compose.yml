@@ -1,0 +1,88 @@
+version: "3"
+
+services:
+
+  lb:
+    image: nginx
+    volumes:
+      - "./loadbalancer:/etc/nginx/conf.d"
+    ports:
+      - "8881:80"
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+    networks:
+      - lbnet
+
+  web:
+    image: localhost:5000/pimcore_cent7
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        #resources:
+        #limits:
+        # cpus: "1.0"
+        #  memory: 1000M
+    volumes:
+      - "./html:/var/www/html"
+      - ./httpd.conf:/etc/httpd/conf/httpd.conf
+    environment:
+      - PIMCORE_DB_USER=pimcore_user
+      - PIMCORE_DB_PASSWORD=htertHTjgd
+      - PIMCORE_DB_NAME=pimcore
+      - PIMCORE_DB_HOST=db
+      - PIMCORE_DB_PORT=3306    
+    ports:
+      - "8882:80"
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+    networks:
+      - lbnet
+
+  db:
+    image: mysql:5.7
+    #command: --skip-name-resolve
+    volumes:
+      - ./mysql/data/:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=ETHtpkrgi
+      - MYSQL_DATABASE=pimcore
+      - MYSQL_USER=pimcore_user
+      - MYSQL_PASSWORD=htertHTjgd
+        #- MYSQL_KEY_BUFFER_SIZE=4M
+        #- MYSQL_READ_BUFFER_SIZE=1M
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+    networks:
+      - lbnet
+
+  visualizer:
+    image: dockersamples/visualizer:stable
+    ports:
+      - "8883:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+    networks:
+      - lbnet
+
+  pma:
+    image: phpmyadmin/phpmyadmin
+    environment:
+      - PMA_HOST=db
+    ports:
+      - "8884:80"
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+    networks:
+      - lbnet        
+
+networks:
+  lbnet:
+
